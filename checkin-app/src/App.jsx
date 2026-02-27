@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import "./index.css";
+import Clock from "./utils/Clock";
 
 function App() {
   const [status, setStatus] = useState("");
+  const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleCheckIn = async () => {
@@ -10,16 +12,7 @@ function App() {
     setStatus("");
 
     try {
-      // 1. Get MAC address from Electron API
       const mac = await window.api.getMacAddress();
-
-      if (!mac) {
-        setStatus("Error: Could not retrieve MAC address.");
-        setIsLoading(false);
-        return;
-      }
-
-      // 2. Send to backend
       const response = await fetch("http://localhost:3000/checkin", {
         method: "POST",
         headers: {
@@ -43,11 +36,36 @@ function App() {
     }
   };
 
+  const fetchName = async () => {
+    try {
+      const mac = await window.api.getMacAddress();
+      const response = await fetch("http://localhost:3000/get-info", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ mac }),
+      });
+      const result = await response.json();
+      if (response.ok) {
+        setName(result.employee.full_name);
+      }
+    } catch (error) {
+      console.error("Check-in error:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchName();
+  }, []);
+
   return (
     <div className="app-container">
       <div className="glass-panel">
-        <h1 className="title">Xin chào</h1>
-        <p className="subtitle">Secure Timekeeping System</p>
+        <h1 className="title">{name ? `Xin chào ${name}` : "Xin chào"}</h1>
+        <p className="subtitle">
+          Bây giờ là <Clock />
+        </p>
 
         <div className="action-area">
           <button
