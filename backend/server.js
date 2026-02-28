@@ -104,6 +104,7 @@ app.post("/get-info", async (req, res) => {
   console.log(userIp, mac, employeeData, workSchedule, attendanceStatus);
 
   res.json({
+    message: "Get info successful!",
     employeeData,
     workSchedule,
     attendanceStatus,
