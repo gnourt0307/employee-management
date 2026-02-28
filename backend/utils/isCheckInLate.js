@@ -1,19 +1,21 @@
 const dayjs = require("dayjs");
 const customParseFormat = require("dayjs/plugin/customParseFormat");
+const timezone = require("dayjs/plugin/timezone");
+const utc = require("dayjs/plugin/utc");
 
 dayjs.extend(customParseFormat);
+dayjs.extend(timezone);
+dayjs.extend(utc);
 
 function isCheckInLate(workTime) {
-  const format = "HH:mm:ss";
+  const now = dayjs().tz("Asia/Ho_Chi_Minh");
 
-  const now = dayjs(); // keep as Dayjs object
-  const target = dayjs(workTime, format);
+  const target = dayjs(
+    now.format("YYYY-MM-DD") + " " + workTime,
+    "YYYY-MM-DD HH:mm:ss",
+  ).tz("Asia/Ho_Chi_Minh");
 
-  if (now.isAfter(target)) {
-    return true;
-  }
-
-  return false;
+  return now.isAfter(target);
 }
 
 module.exports = isCheckInLate;
