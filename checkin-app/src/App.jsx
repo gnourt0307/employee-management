@@ -9,7 +9,8 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [isClickable, setIsClickable] = useState(false);
   const [checkInStatus, setCheckInStatus] = useState("");
-  const [isValidIp, setIsValidIp] = useState(false);
+  const [isGetInfoSuccess, setIsGetInfoSuccess] = useState(true);
+  const [message, setMessage] = useState("");
 
   //xử lí check in/out
   const handleCheckInAndCheckOut = async (type) => {
@@ -61,45 +62,39 @@ function App() {
         },
       );
       const result = await response.json();
+      if (result.message !== "Get info successful!") {
+        setIsGetInfoSuccess(false);
+        setMessage(result.message);
+      }
 
       const { employeeData, workSchedule, attendanceStatus } = result;
-
-      if (response.ok) {
-        setIsValidIp(true);
-        setName(employeeData.employee.full_name);
-      }
+      setName(employeeData.employee.full_name);
 
       //Button clickable at 7AM
-      const checkInStatus = compareWithNow("07:00:00");
-      if (checkInStatus === "before") {
-        setIsClickable(false);
-      } else {
-        setIsClickable(true);
-      }
+      compareWithNow("07:00:00") === "before"
+        ? setIsClickable(false)
+        : setIsClickable(true);
 
       //check if status has already been checked in
-      if (attendanceStatus === undefined) {
-        setIsClickable(true);
-      } else if (
-        attendanceStatus.status === "present" ||
-        attendanceStatus.status === "late" ||
-        attendanceStatus.status === "absent"
+      if (
+        attendanceStatus === null &&
+        compareWithNow(workSchedule.work_end_time) === "after"
       ) {
         setIsClickable(false);
-        setCheckInStatus(attendanceStatus.status);
-      }
-
-      //Make button clickable after work end time
-      if (
-        attendanceStatus &&
-        !attendanceStatus.check_out_time &&
-        (attendanceStatus.status === "present" ||
-          attendanceStatus.status === "late")
-      ) {
-        const checkOutStatus = compareWithNow(workSchedule.work_end_time);
-        if (checkOutStatus === "after") {
-          setIsClickable(true);
+      } else if (attendanceStatus === null) {
+        setIsClickable(true);
+      } else if (attendanceStatus.status) {
+        if (!attendanceStatus.check_out_time) {
+          const checkOutStatus = compareWithNow(workSchedule.work_end_time);
+          if (checkOutStatus === "after") {
+            setIsClickable(true);
+          } else {
+            setIsClickable(false);
+          }
+        } else {
+          setIsClickable(false);
         }
+        setCheckInStatus(attendanceStatus.status);
       }
     } catch (error) {
       console.error("Check-in error:", error);
@@ -113,10 +108,8 @@ function App() {
   return (
     <div className="app-container">
       <div className="glass-panel">
-        {!isValidIp ? (
-          <div className="error-message">
-            Hãy đăng nhập vào Wifi của văn phòng trước.
-          </div>
+        {!isGetInfoSuccess ? (
+          <div className="error-message">{message}</div>
         ) : (
           <>
             <h1 className="title">{name ? `Xin chào ${name}` : "Xin chào"}</h1>

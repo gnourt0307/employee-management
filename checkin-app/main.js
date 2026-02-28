@@ -6,6 +6,7 @@ function createWindow() {
   const win = new BrowserWindow({
     width: 600,
     height: 480, // slightly taller for new UI
+    title: "Check-in/Check-out Application",
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
     },
@@ -20,6 +21,12 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  // Set the app to start on login
+  app.setLoginItemSettings({
+    openAtLogin: true,
+    path: app.getPath("exe"),
+  });
+
   ipcMain.handle("get-mac", () => {
     const interfaces = os.networkInterfaces();
     for (let name in interfaces) {
