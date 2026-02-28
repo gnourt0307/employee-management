@@ -12,6 +12,7 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
     },
+    title: "Employees Management",
   });
 
   const isDev = !app.isPackaged;

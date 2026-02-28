@@ -32,6 +32,7 @@
   },
   "build": {
     "appId": "com.company.admin",
+    "productName": "Employees Management",
     "directories": {
       "output": "dist-electron"
     },
