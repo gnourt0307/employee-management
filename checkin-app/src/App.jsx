@@ -18,13 +18,16 @@ function App() {
 
     try {
       const mac = await window.api.getMacAddress();
-      const response = await fetch(`http://localhost:3000/${type}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        `https://checkin-app-ncqz.onrender.com/${type}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ mac }),
         },
-        body: JSON.stringify({ mac }),
-      });
+      );
 
       const result = await response.json();
 
@@ -47,13 +50,16 @@ function App() {
   const fetchInfo = async () => {
     try {
       const mac = await window.api.getMacAddress();
-      const response = await fetch("http://localhost:3000/get-info", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        "https://checkin-app-ncqz.onrender.com/get-info",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ mac }),
         },
-        body: JSON.stringify({ mac }),
-      });
+      );
       const result = await response.json();
 
       const { employeeData, workSchedule, attendanceStatus } = result;
