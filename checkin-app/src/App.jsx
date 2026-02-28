@@ -11,13 +11,14 @@ function App() {
   const [isClickable, setIsClickable] = useState(false);
   const [checkInStatus, setCheckInStatus] = useState("");
 
-  const handleCheckIn = async () => {
+  //xử lí check in/out
+  const handleCheckInAndCheckOut = async (type) => {
     setIsLoading(true);
     setStatus("");
 
     try {
       const mac = await window.api.getMacAddress();
-      const response = await fetch("http://localhost:3000/checkin", {
+      const response = await fetch(`http://localhost:3000/${type}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -35,44 +36,14 @@ function App() {
 
       setIsClickable(false);
     } catch (error) {
-      console.error("Check-in error:", error);
+      console.error(`${type} error:`, error);
       setStatus("Failed to connect to server.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleCheckOut = async () => {
-    setIsLoading(true);
-    setStatus("");
-
-    try {
-      const mac = await window.api.getMacAddress();
-      const response = await fetch("http://localhost:3000/checkout", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ mac }),
-      });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        setStatus(`${result.message}`);
-      } else {
-        setStatus(`${result.message}`);
-      }
-
-      setIsClickable(false);
-    } catch (error) {
-      console.error("Check-out error:", error);
-      setStatus("Failed to connect to server.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+  //lấy thông tin nhân viên và trạng thái check in/out
   const fetchInfo = async () => {
     try {
       const mac = await window.api.getMacAddress();
@@ -84,27 +55,41 @@ function App() {
         body: JSON.stringify({ mac }),
       });
       const result = await response.json();
+
+      const { employeeData, workSchedule, attendanceStatus } = result;
+
       if (response.ok) {
-        setName(result.employee.full_name);
+        setName(employeeData.employee.full_name);
       }
 
-      const checkInStatus = compareWithNow("00:00:00");
+      //Button clickable at 7AM
+      const checkInStatus = compareWithNow("07:00:00");
       if (checkInStatus === "before") {
         setIsClickable(false);
       } else {
         setIsClickable(true);
       }
 
-      if (result.checkInStatus === undefined) {
+      //check if status has already been checked in
+      if (attendanceStatus === undefined) {
         setIsClickable(true);
-      } else if (result.checkInStatus.status === "present") {
+      } else if (
+        attendanceStatus.status === "present" ||
+        attendanceStatus.status === "late" ||
+        attendanceStatus.status === "absent"
+      ) {
         setIsClickable(false);
-        setCheckInStatus("present");
+        setCheckInStatus(attendanceStatus.status);
       }
 
-      if (result.checkInStatus.status === "present") {
-        const checkOutStatus = compareWithNow(result.schedule.work_end_time);
-        console.log(checkOutStatus);
+      //Make button clickable after work end time
+      if (
+        attendanceStatus &&
+        !attendanceStatus.check_out_time &&
+        (attendanceStatus.status === "present" ||
+          attendanceStatus.status === "late")
+      ) {
+        const checkOutStatus = compareWithNow(workSchedule.work_end_time);
         if (checkOutStatus === "after") {
           setIsClickable(true);
         }
@@ -130,13 +115,15 @@ function App() {
           <button
             className={`checkin-btn ${isLoading ? "loading" : ""}`}
             onClick={
-              checkInStatus === "present" ? handleCheckOut : handleCheckIn
+              checkInStatus === "present" || checkInStatus === "late"
+                ? () => handleCheckInAndCheckOut("checkout")
+                : () => handleCheckInAndCheckOut("checkin")
             }
             disabled={isLoading || !isClickable}
           >
             {isLoading ? (
               <span className="spinner"></span>
-            ) : checkInStatus === "present" ? (
+            ) : checkInStatus === "present" || checkInStatus === "late" ? (
               "Check Out"
             ) : (
               "Check In"
