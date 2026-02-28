@@ -1,3 +1,4 @@
+require("dotenv").config();
 const { createClient } = require("@supabase/supabase-js");
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -15,8 +16,6 @@ async function getWorkSchedule(work_day) {
     console.error("Error fetching work schedule:", error);
     return null;
   }
-
-  console.log("Work Schedule Data:", data);
   return data;
 }
 
