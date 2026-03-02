@@ -3,6 +3,7 @@ const express = require("express");
 const app = express();
 const getWorkSchedule = require("./utils/getWorkSchedule");
 const isCheckInLate = require("./utils/isCheckInLate");
+const isLeaveEarly = require("./utils/isLeaveEarly");
 const getTodayDate = require("./utils/getTodayDate");
 const getEmployeeData = require("./utils/getEmployeeData");
 const insertStatus = require("./utils/insertStatus");
@@ -67,10 +68,17 @@ app.post("/checkout", async (req, res) => {
     return res.status(404).json({ message: "Employee not found" });
   }
 
+  let workSchedule = isWeekend()
+    ? await getWorkSchedule("weekend")
+    : await getWorkSchedule("in_week");
+
   console.log(userIp, mac, employeeData);
 
+  const leaveEarly = isLeaveEarly(workSchedule.work_end_time);
+  const status = leaveEarly ? "leave_early" : undefined;
+
   const todayDate = getTodayDate();
-  updateStatus(employeeData, todayDate);
+  updateStatus(employeeData, todayDate, status);
 
   res.json({ message: "Check-out successful!" });
 });

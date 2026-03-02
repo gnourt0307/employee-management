@@ -5,12 +5,18 @@ const supabase = createClient(
   process.env.SUPABASE_KEY,
 );
 
-async function updateStatus(employeeData, todayDate) {
+async function updateStatus(employeeData, todayDate, status) {
+  const updateData = {
+    check_out_time: new Date().toISOString(),
+  };
+
+  if (status) {
+    updateData.status = status;
+  }
+
   const { data, error } = await supabase
     .from("attendance")
-    .update({
-      check_out_time: new Date().toISOString(),
-    })
+    .update(updateData)
     .eq("employee_id", employeeData.employee.id)
     .eq("work_date", todayDate)
     .single();
