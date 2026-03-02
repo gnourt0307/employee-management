@@ -33,6 +33,7 @@
     "directories": {
       "output": "dist-electron"
     },
+    "version": "1.0.1",
     "files": [
       "dist/**/*",
       "main.js",

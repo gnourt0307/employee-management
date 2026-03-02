@@ -67,27 +67,17 @@ function App() {
         setMessage(result.message);
       }
 
-      const { employeeData, workSchedule, attendanceStatus } = result;
+      const { employeeData, attendanceStatus } = result;
       setName(employeeData.employee.full_name);
 
       let clickable = false;
 
       //check if status has already been checked in
-      if (
-        attendanceStatus === null &&
-        compareWithNow(workSchedule.work_end_time) === "after"
-      ) {
-        clickable = false;
-      } else if (attendanceStatus === null) {
+      if (attendanceStatus === null) {
         clickable = true;
       } else if (attendanceStatus.status) {
         if (!attendanceStatus.check_out_time) {
-          const checkOutStatus = compareWithNow(workSchedule.work_end_time);
-          if (checkOutStatus === "after") {
-            clickable = true;
-          } else {
-            clickable = false;
-          }
+          clickable = true;
         } else {
           clickable = false;
         }
@@ -124,7 +114,7 @@ function App() {
               <button
                 className={`checkin-btn ${isLoading ? "loading" : ""}`}
                 onClick={
-                  checkInStatus === "present" || checkInStatus === "late"
+                  checkInStatus
                     ? () => handleCheckInAndCheckOut("checkout")
                     : () => handleCheckInAndCheckOut("checkin")
                 }
@@ -132,7 +122,7 @@ function App() {
               >
                 {isLoading ? (
                   <span className="spinner"></span>
-                ) : checkInStatus === "present" || checkInStatus === "late" ? (
+                ) : checkInStatus ? (
                   "Check Out"
                 ) : (
                   "Check In"
