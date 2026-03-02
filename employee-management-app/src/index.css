@@ -256,6 +256,11 @@ body {
   color: var(--warning);
 }
 
+.status-leave-early {
+  background-color: rgba(199, 146, 234, 0.1);
+  color: #c792ea;
+}
+
 /* Details View */
 .details-view {
   animation: fadeIn 0.3s ease;
@@ -630,6 +635,12 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   pointer-events: none;
 }
 
+.selected-day .calendar-day-circle {
+  border: 2px solid white !important;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+  transform: scale(1.1);
+}
+
 .status-future .calendar-day-circle {
   background-color: transparent;
 }
@@ -652,4 +663,33 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 .status-late-calendar .calendar-day-circle {
   background-color: #eab308; /* yellow */
   color: white;
+}
+
+.status-leave-early-calendar .calendar-day-circle {
+  background-color: #c792ea; /* light purple */
+  color: white;
+}
+
+.summary-dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.status-absent-dot {
+  background-color: #ef4444;
+}
+.status-present-dot {
+  background-color: #22c55e;
+}
+.status-late-dot {
+  background-color: #eab308;
+}
+.status-in-progress-dot {
+  background-color: #3b82f6;
+}
+.status-leave-early-dot {
+  background-color: #c792ea;
 }

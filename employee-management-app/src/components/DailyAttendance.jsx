@@ -111,6 +111,16 @@ export default function DailyAttendance() {
       );
     }
 
+    if (att.status === "leave_early") {
+      return (
+        <span
+          className={`status-badge ${!att.check_out_time ? "status-in-progress" : "status-leave-early"}`}
+        >
+          {t("leaveEarly")}
+        </span>
+      );
+    }
+
     return (
       <span
         className={`status-badge ${!att.check_out_time ? "status-in-progress" : "status-active"}`}
@@ -187,7 +197,6 @@ export default function DailyAttendance() {
               <tr>
                 <th>{t("code")}</th>
                 <th>{t("name")}</th>
-                <th>{t("position")}</th>
                 <th>{t("checkInTime")}</th>
                 <th>{t("checkOutTime")}</th>
                 <th>{t("attendanceStatus")}</th>
@@ -205,7 +214,6 @@ export default function DailyAttendance() {
                   <tr key={record.id}>
                     <td>{record.employee_code}</td>
                     <td>{record.full_name}</td>
-                    <td>{record.position}</td>
                     <td>{formatTime(record.attendance?.check_in_time)}</td>
                     <td>{formatTime(record.attendance?.check_out_time)}</td>
                     <td>{getStatusBadge(record.attendance)}</td>

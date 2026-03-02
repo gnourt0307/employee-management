@@ -12,6 +12,11 @@ export default function EmployeeDetails({ employee, onBack }) {
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
   });
 
+  const [selectedDay, setSelectedDay] = useState(null);
+  const [selectedNote, setSelectedNote] = useState("");
+  const [savingNote, setSavingNote] = useState(false);
+  const [noteMessage, setNoteMessage] = useState(null);
+
   useEffect(() => {
     if (employee?.id) {
       fetchAttendance();
@@ -106,6 +111,7 @@ export default function EmployeeDetails({ employee, onBack }) {
 
     if (!record.check_out_time) return "status-in-progress-calendar"; // blue
     if (record.status === "late") return "status-late-calendar"; // yellow
+    if (record.status === "leave_early") return "status-leave-early-calendar"; // light purple
 
     return "status-on-time-calendar"; // green
   };
@@ -124,6 +130,93 @@ export default function EmployeeDetails({ employee, onBack }) {
   };
 
   const calendarDays = generateCalendarDays();
+
+  const getAttendanceStats = () => {
+    let stats = {
+      present: 0,
+      absent: 0,
+      late: 0,
+      inProgress: 0,
+      leaveEarly: 0,
+    };
+
+    const todayStr = getDateString(new Date());
+
+    calendarDays.forEach((dayObj) => {
+      // Only count days in the currently viewed month
+      if (!dayObj.isCurrentMonth) return;
+      // Don't count future days
+      if (dayObj.dateStr > todayStr) return;
+
+      const record = attendance.find((a) => a.work_date === dayObj.dateStr);
+      if (!record) {
+        // Check if Sunday (getDay() returns 0 for Sunday)
+        const isSunday = new Date(dayObj.dateStr).getDay() === 0;
+        if (!isSunday) {
+          stats.absent++;
+        }
+        return;
+      }
+
+      if (!record.check_out_time) {
+        stats.inProgress++;
+      } else if (record.status === "late") {
+        stats.late++;
+      } else if (record.status === "leave_early") {
+        stats.leaveEarly++;
+      } else {
+        stats.present++; // "present" or "on time"
+      }
+    });
+
+    return stats;
+  };
+
+  const handleDayClick = (dateStr, isCurrentMonth) => {
+    if (!isCurrentMonth) return;
+    const todayStr = getDateString(new Date());
+    if (dateStr > todayStr) return; // Future date
+
+    setSelectedDay(dateStr);
+    const record = attendance.find((a) => a.work_date === dateStr);
+    setSelectedNote(record?.note || "");
+    setNoteMessage(null);
+  };
+
+  const handleSaveNote = async () => {
+    if (!selectedDay) return;
+
+    setSavingNote(true);
+    setNoteMessage(null);
+
+    const record = attendance.find((a) => a.work_date === selectedDay);
+    if (!record) {
+      setNoteMessage({ type: "error", text: t("noDataForNote") });
+      setSavingNote(false);
+      return;
+    }
+
+    const { error } = await supabase
+      .from("attendance")
+      .update({ note: selectedNote })
+      .eq("id", record.id); // Or use employee_id and work_date if id is not available
+
+    if (error) {
+      console.error("Error saving note:", error);
+      setNoteMessage({ type: "error", text: t("noteError") });
+    } else {
+      setNoteMessage({ type: "success", text: t("noteSuccess") });
+      // Update local state without re-fetching everything
+      setAttendance((prev) =>
+        prev.map((a) =>
+          a.id === record.id ? { ...a, note: selectedNote } : a,
+        ),
+      );
+    }
+    setSavingNote(false);
+  };
+
+  const stats = getAttendanceStats();
 
   return (
     <div className="details-view">
@@ -263,46 +356,221 @@ export default function EmployeeDetails({ employee, onBack }) {
                 </div>
               </div>
 
-              <div className="calendar-container">
-                {loading ? (
-                  <p>{t("loading")}</p>
-                ) : (
-                  <div className="attendance-calendar">
-                    <div className="calendar-header-row">
-                      <div className="calendar-day-name">{t("sun")}</div>
-                      <div className="calendar-day-name">{t("mon")}</div>
-                      <div className="calendar-day-name">{t("tue")}</div>
-                      <div className="calendar-day-name">{t("wed")}</div>
-                      <div className="calendar-day-name">{t("thu")}</div>
-                      <div className="calendar-day-name">{t("fri")}</div>
-                      <div className="calendar-day-name">{t("sat")}</div>
-                    </div>
-                    <div className="calendar-grid">
-                      {calendarDays.map((dayObj, idx) => {
-                        const tooltipText = getDayTooltip(
-                          dayObj.dateStr,
-                          dayObj.isCurrentMonth,
-                        );
-                        return (
-                          <div
-                            key={idx}
-                            className={`calendar-cell ${getDayStatusClass(
-                              dayObj.dateStr,
-                              dayObj.isCurrentMonth,
-                            )}`}
-                          >
-                            <div className="calendar-day-circle">
-                              {dayObj.day}
-                            </div>
-                            {tooltipText && (
-                              <div className="calendar-tooltip">
-                                {tooltipText}
+              <div
+                className="attendance-layout"
+                style={{
+                  display: "flex",
+                  gap: "2rem",
+                  flexWrap: "wrap",
+                  justifyContent: "flex-start",
+                  alignItems: "stretch", // Ensures children stretch to match tallest element
+                }}
+              >
+                {!loading && (
+                  <div
+                    className="attendance-summary"
+                    style={{
+                      flex: "1",
+                      minWidth: "200px",
+                      maxWidth: "250px",
+                      backgroundColor: "var(--surface)",
+                      padding: "1.5rem",
+                      borderRadius: "8px",
+                      border: "1px solid var(--border)",
+                      height: "fit-content",
+                    }}
+                  >
+                    <h3 style={{ marginBottom: "1rem", fontSize: "1.1rem" }}>
+                      {t("summary")}
+                    </h3>
+                    <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                      <li
+                        style={{
+                          marginBottom: "0.5rem",
+                          display: "flex",
+                          alignItems: "center",
+                        }}
+                      >
+                        <span className="summary-dot status-absent-dot"></span>{" "}
+                        {t("absent")}: {stats.absent}
+                      </li>
+                      <li
+                        style={{
+                          marginBottom: "0.5rem",
+                          display: "flex",
+                          alignItems: "center",
+                        }}
+                      >
+                        <span className="summary-dot status-present-dot"></span>{" "}
+                        {t("present")}: {stats.present}
+                      </li>
+                      <li
+                        style={{
+                          marginBottom: "0.5rem",
+                          display: "flex",
+                          alignItems: "center",
+                        }}
+                      >
+                        <span className="summary-dot status-late-dot"></span>{" "}
+                        {t("late")}: {stats.late}
+                      </li>
+                      <li
+                        style={{
+                          marginBottom: "0.5rem",
+                          display: "flex",
+                          alignItems: "center",
+                        }}
+                      >
+                        <span className="summary-dot status-in-progress-dot"></span>{" "}
+                        {t("notCheckedOut")}: {stats.inProgress}
+                      </li>
+                      <li style={{ display: "flex", alignItems: "center" }}>
+                        <span className="summary-dot status-leave-early-dot"></span>{" "}
+                        {t("leaveEarly")}: {stats.leaveEarly}
+                      </li>
+                    </ul>
+                  </div>
+                )}
+                <div
+                  className="calendar-container"
+                  style={{
+                    margin: 0,
+                    flex: "2",
+                    minWidth: "300px",
+                    maxWidth: "450px",
+                  }}
+                >
+                  {loading ? (
+                    <p>{t("loading")}</p>
+                  ) : (
+                    <div className="attendance-calendar">
+                      <div className="calendar-header-row">
+                        <div className="calendar-day-name">{t("sun")}</div>
+                        <div className="calendar-day-name">{t("mon")}</div>
+                        <div className="calendar-day-name">{t("tue")}</div>
+                        <div className="calendar-day-name">{t("wed")}</div>
+                        <div className="calendar-day-name">{t("thu")}</div>
+                        <div className="calendar-day-name">{t("fri")}</div>
+                        <div className="calendar-day-name">{t("sat")}</div>
+                      </div>
+                      <div className="calendar-grid">
+                        {calendarDays.map((dayObj, idx) => {
+                          const tooltipText = getDayTooltip(
+                            dayObj.dateStr,
+                            dayObj.isCurrentMonth,
+                          );
+                          return (
+                            <div
+                              key={idx}
+                              className={`calendar-cell ${getDayStatusClass(
+                                dayObj.dateStr,
+                                dayObj.isCurrentMonth,
+                              )} ${selectedDay === dayObj.dateStr ? "selected-day" : ""}`}
+                              onClick={() =>
+                                handleDayClick(
+                                  dayObj.dateStr,
+                                  dayObj.isCurrentMonth,
+                                )
+                              }
+                              style={{
+                                cursor:
+                                  dayObj.isCurrentMonth &&
+                                  dayObj.dateStr <= getDateString(new Date())
+                                    ? "pointer"
+                                    : "default",
+                              }}
+                            >
+                              <div className="calendar-day-circle">
+                                {dayObj.day}
                               </div>
-                            )}
-                          </div>
-                        );
-                      })}
+                              {tooltipText && (
+                                <div className="calendar-tooltip">
+                                  {tooltipText}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
+                  )}
+                </div>
+
+                {/* Note Panel aligned right of the calendar */}
+                {!loading && (
+                  <div
+                    className="attendance-note"
+                    style={{
+                      flex: "3" /* Make it take the rest of the space */,
+                      minWidth: "300px",
+                      maxWidth: "100%" /* Remove hard max width */,
+                      backgroundColor: "var(--surface)",
+                      padding: "1.5rem",
+                      borderRadius: "8px",
+                      border: "1px solid var(--border)",
+                      display: "flex",
+                      flexDirection: "column",
+                    }}
+                  >
+                    <h3 style={{ marginBottom: "1rem", fontSize: "1.1rem" }}>
+                      {t("note")} {selectedDay ? ` - ${selectedDay}` : ""}
+                    </h3>
+
+                    {!selectedDay ? (
+                      <p style={{ color: "var(--text-muted)", flexGrow: 1 }}>
+                        {t("dayNotSelected")}
+                      </p>
+                    ) : (
+                      <div
+                        className="form-group full-width"
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          flexGrow: 1,
+                          height: "100%",
+                        }}
+                      >
+                        <textarea
+                          style={{
+                            width: "100%",
+                            padding: "0.75rem",
+                            borderRadius: "6px",
+                            border: "1px solid var(--border)",
+                            backgroundColor: "var(--bg-color)",
+                            color: "var(--text-main)",
+                            fontFamily: "inherit",
+                            resize:
+                              "none" /* Disable manual resizing so it stretches */,
+                            flexGrow: 1 /* Stretch to fill available vertical space */,
+                            marginBottom: "1rem",
+                          }}
+                          value={selectedNote}
+                          onChange={(e) => setSelectedNote(e.target.value)}
+                          placeholder={`${t("note")}...`}
+                        />
+
+                        {noteMessage && (
+                          <div
+                            className={`alert alert-${noteMessage.type}`}
+                            style={{
+                              padding: "0.5rem",
+                              marginBottom: "1rem",
+                              fontSize: "0.9rem",
+                            }}
+                          >
+                            {noteMessage.text}
+                          </div>
+                        )}
+
+                        <button
+                          className="btn btn-primary"
+                          onClick={handleSaveNote}
+                          disabled={savingNote}
+                        >
+                          {savingNote ? t("saving") : t("saveNote")}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
