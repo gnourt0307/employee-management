@@ -107,7 +107,7 @@ export default function EmployeeDetails({ employee, onBack }) {
     if (dateStr > todayStr) return "status-future";
 
     const record = attendance.find((a) => a.work_date === dateStr);
-    if (!record) return "status-absent-calendar"; // red
+    if (!record || record.status === "absent") return "status-absent-calendar"; // red
 
     if (!record.check_out_time) return "status-in-progress-calendar"; // blue
     if (record.status === "late") return "status-late-calendar"; // yellow
@@ -190,16 +190,37 @@ export default function EmployeeDetails({ employee, onBack }) {
     setNoteMessage(null);
 
     const record = attendance.find((a) => a.work_date === selectedDay);
+
     if (!record) {
-      setNoteMessage({ type: "error", text: t("noDataForNote") });
+      // Absent day — insert a new attendance row with just the note
+      const { data: inserted, error } = await supabase
+        .from("attendance")
+        .insert({
+          employee_id: employee.id,
+          work_date: selectedDay,
+          status: "absent",
+          note: selectedNote,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Error saving note for absent day:", error);
+        setNoteMessage({ type: "error", text: t("noteError") });
+      } else {
+        setNoteMessage({ type: "success", text: t("noteSuccess") });
+        // Add the new record to local state
+        setAttendance((prev) => [...prev, inserted]);
+      }
       setSavingNote(false);
       return;
     }
 
+    // Existing record — just update the note
     const { error } = await supabase
       .from("attendance")
       .update({ note: selectedNote })
-      .eq("id", record.id); // Or use employee_id and work_date if id is not available
+      .eq("id", record.id);
 
     if (error) {
       console.error("Error saving note:", error);
