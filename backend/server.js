@@ -60,7 +60,7 @@ app.post("/checkout", async (req, res) => {
     ? await getWorkSchedule("weekend")
     : await getWorkSchedule("in_week");
 
-  console.log(userIp, mac, employeeData);
+  console.log(mac, employeeData);
 
   const leaveEarly = isLeaveEarly(workSchedule.work_end_time);
   const status = leaveEarly ? "leave_early" : undefined;
@@ -91,7 +91,7 @@ app.post("/get-info", async (req, res) => {
   const todayDate = getTodayDate();
   const attendanceStatus = await getAttendanceStatus(employeeData, todayDate);
 
-  console.log(userIp, mac, employeeData, workSchedule, attendanceStatus);
+  console.log(mac, employeeData, workSchedule, attendanceStatus);
 
   res.json({
     message: "Get info successful!",
