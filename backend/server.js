@@ -17,13 +17,7 @@ app.set("trust proxy", true);
 
 //xử lí check in
 app.post("/checkin", async (req, res) => {
-  const companyIp = process.env.COMPANY_IP.split(",");
   const { mac } = req.body;
-  const userIp = req.ip;
-
-  if (!companyIp.includes(userIp)) {
-    return res.status(400).json({ message: "Invalid IP address" });
-  }
 
   const employeeData = await getEmployeeData(mac);
   if (!employeeData) {
@@ -38,7 +32,7 @@ app.post("/checkin", async (req, res) => {
     return res.status(404).json({ message: "Work schedule not found" });
   }
 
-  console.log(userIp, mac, employeeData, workSchedule);
+  console.log(mac, employeeData, workSchedule);
 
   const workStartTime = workSchedule.work_start_time;
   const lateMinutes = workSchedule.late_threshold_minutes;
@@ -55,13 +49,7 @@ app.post("/checkin", async (req, res) => {
 
 //xử lí check out
 app.post("/checkout", async (req, res) => {
-  const companyIp = process.env.COMPANY_IP.split(",");
-  const userIp = req.ip;
   const { mac } = req.body;
-
-  if (!companyIp.includes(userIp)) {
-    return res.status(400).json({ message: "Invalid IP address" });
-  }
 
   const employeeData = await getEmployeeData(mac);
   if (!employeeData) {
@@ -85,13 +73,7 @@ app.post("/checkout", async (req, res) => {
 
 //lấy thông tin nhân viên và trạng thái check in/out
 app.post("/get-info", async (req, res) => {
-  const companyIp = process.env.COMPANY_IP.split(",");
   const { mac } = req.body;
-  const userIp = req.ip;
-
-  if (!companyIp.includes(userIp)) {
-    return res.status(400).json({ message: "Invalid IP address" });
-  }
 
   if (!mac) {
     return res.status(400).json({ message: "MAC address not found" });
